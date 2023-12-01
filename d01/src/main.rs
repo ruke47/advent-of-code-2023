@@ -5,6 +5,7 @@ fn main() {
     part1();
     part2();
 }
+
 fn part1() {
     let sum: u32 = fs::read_to_string("input")
         .expect("Couldn't read file")
@@ -14,6 +15,7 @@ fn part1() {
 
     println!("{sum}");
 }
+
 fn first_digit_1(line: &str) -> &str {
     let first_num_re = Regex::new(r"\d").unwrap();
     let digit_str = first_num_re
