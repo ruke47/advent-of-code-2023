@@ -67,7 +67,7 @@ fn line_to_int_2(line: &str) -> u32 {
 
     let combo = first_digit.clone() + last_digit;
     let two_digit = combo.parse().unwrap();
-    println!("{line}: {first_digit} {last_digit} => {combo} ({two_digit})");
+    // println!("{line}: {first_digit} {last_digit} => {combo} ({two_digit})");
     return two_digit
 }
 
