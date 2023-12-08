@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::fs;
 use itertools::Itertools;
+use crate::HandType::{FiveOfKind, FourOfKind, FullHouse, HighCard, SinglePair, ThreeOfKind, TwoPair};
 
 #[derive(Eq, PartialEq, Hash, Debug)]
 struct Hand {
@@ -8,9 +9,13 @@ struct Hand {
     cards: Vec<Card>,
 }
 
+#[derive(Ord, PartialOrd, Eq, PartialEq)]
+enum HandType {
+    HighCard, SinglePair, TwoPair, ThreeOfKind, FullHouse, FourOfKind, FiveOfKind
+}
+
 impl Hand {
-    // returns how good the hand is 0: nothing to 6: five of a kind
-    fn rank_hand(&self) -> u32 {
+    fn rank_hand(&self) -> HandType {
         // group the cards by their identity
         let mut card_groups = self.cards.iter()
             .into_group_map_by(|c| *c);
@@ -35,28 +40,20 @@ impl Hand {
             card_sizes[0] = card_sizes[0] + joker_count;
         }
 
-
-        // 5 different cards
-        return if card_sizes.len() == 5 {
-            0
-        // 1 pair
-        } else if card_sizes.len() == 4 {
-            1
-        // 2 pair
+        return if card_sizes[0] == 1 {
+            HighCard
+        } else if card_sizes[0] == 2 && card_sizes[1] == 1 {
+            SinglePair
         } else if card_sizes[0] == 2 && card_sizes[1] == 2 {
-            2
-        // 3 of a kind
+            TwoPair
         } else if card_sizes.len() == 3 && card_sizes[0] == 3 {
-            3
-        // full house
+            ThreeOfKind
         } else if card_sizes[0] == 3 && card_sizes[1] == 2 {
-            4
-        // four of a kind
+            FullHouse
         } else if card_sizes[0] == 4 {
-            5
-        // five of a kind
+            FourOfKind
         } else if card_sizes[0] == 5 {
-            6
+            FiveOfKind
         } else {
             panic!("Not sure what kind of hand this is");
         }
