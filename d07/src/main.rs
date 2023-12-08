@@ -46,7 +46,7 @@ impl Hand {
             SinglePair
         } else if card_sizes[0] == 2 && card_sizes[1] == 2 {
             TwoPair
-        } else if card_sizes.len() == 3 && card_sizes[0] == 3 {
+        } else if card_sizes[0] == 3  && card_sizes[1] == 1 {
             ThreeOfKind
         } else if card_sizes[0] == 3 && card_sizes[1] == 2 {
             FullHouse
