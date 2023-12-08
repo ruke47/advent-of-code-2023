@@ -91,7 +91,7 @@ impl Ord for Hand {
                 .zip(other.cards.iter())
                 .find(|(ac, bc)| ac != bc)
                 .map(|(ac, bc)| ac.cmp(bc))
-                .unwrap()
+                .unwrap_or(Ordering::Equal)
         };
     }
 }
