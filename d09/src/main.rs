@@ -42,7 +42,7 @@ fn extrapolate(line: Vec<i64>) -> i64 {
     let stack = build_stack(line);
 
     stack.iter()
-        .map(|layer| layer.last().unwrap().clone())
+        .map(|layer| *layer.last().unwrap())
         .reduce(|a, b| a + b)
         .unwrap()
 }
@@ -51,7 +51,7 @@ fn destrapolate(line: Vec<i64>) -> i64 {
     let stack = build_stack(line);
 
     stack.iter()
-        .map(|layer| layer.first().unwrap().clone())
+        .map(|layer| *layer.first().unwrap())
         .rev()
         .reduce(|a, b| b - a)
         .unwrap()
