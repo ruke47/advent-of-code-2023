@@ -83,7 +83,7 @@ fn sum_distances(galaxies: &HashSet<Galaxy>, universe: &Universe) -> usize {
         .flat_map(|ga| {
             galaxies.iter()
                 .filter(|gb| gb.name > ga.name)
-                .map(move |gb| (ga, gb).clone())
+                .map(move |gb| (ga, gb))
         })
         .map(|(ga, gb)| {
             let distance = ga.distance_to(gb, &universe);
@@ -102,7 +102,7 @@ fn read_file(file: &str) -> HashSet<Galaxy> {
             line.chars().enumerate()
                 .map(move |(x, ch)| {
                     match ch {
-                        '#' => Some((x, y).clone()),
+                        '#' => Some((x, y)),
                         _ => None
                     }
                 })
