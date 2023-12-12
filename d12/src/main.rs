@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::fs;
 
 struct Puzzle {
@@ -43,9 +44,12 @@ impl Puzzle {
         // it goes either at the front, in the middle, or at the end
         let floating_size = self.data.len() - broken_sum - (self.damaged_counts.len() - 1);
         let group_positions = self.damaged_counts.len() + 1;
-        let combos: Vec<Vec<usize>> = combinations(floating_size, group_positions)
+        let max_consecutive_spaces = self.max_spaces();
+        let combos: Vec<Vec<usize>> = combinations(floating_size, group_positions, max_consecutive_spaces)
             .into_iter()
             .map(|mut v| {
+                // the front and the end can be empty, but the middle groups have at least 1 .
+                // (this has already been accounted for in floating_size)
                 for i in 1..v.len() {
                     v[i] += 1;
                 }
@@ -80,18 +84,32 @@ impl Puzzle {
         self.data.chars().zip(repaired_data.chars())
             .all(|(ca, cb)| ca == cb || ca == '?')
     }
+
+    fn max_spaces(&self) -> usize {
+        // if ALL of the ?'s were .'s, how many .'s in a row could there be?
+        self.data
+            .replace("?", ".")
+            .replace("#", " ")
+            .split_whitespace()
+            .map(|s| s.len())
+            .max()
+            .unwrap()
+    }
 }
 
-fn combinations(sum:usize, groups: usize) -> Vec<Vec<usize>> {
+fn combinations(sum:usize, groups: usize, max_size: usize) -> Vec<Vec<usize>> {
+    // base case: if you're trying to count to 0 using N numbers, all N of them are 0
     if sum == 0 {
         return vec![vec![0; groups]];
     }
+    // base case: if you're trying to count to N using 1 group, it's N
     if groups == 1 {
         return vec![vec![sum]];
     }
-    (0..=sum).into_iter()
+    let max_iter = min(sum, max_size);
+    (0..=max_iter).into_iter()
         .flat_map(|i| {
-            combinations(sum - i, groups - 1).into_iter()
+            combinations(sum - i, groups - 1, max_iter).into_iter()
                 .map(move |mut v| {
                     v.push(i);
                     v
