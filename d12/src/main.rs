@@ -1,4 +1,3 @@
-use std::cmp::min;
 use std::fs;
 
 struct Puzzle {
@@ -44,78 +43,69 @@ impl Puzzle {
         // it goes either at the front, in the middle, or at the end
         let floating_size = self.data.len() - broken_sum - (self.damaged_counts.len() - 1);
         let group_positions = self.damaged_counts.len() + 1;
-        let max_consecutive_spaces = self.max_spaces();
-        let combos: Vec<Vec<usize>> = combinations(floating_size, group_positions, max_consecutive_spaces)
-            .into_iter()
-            .map(|mut v| {
-                // the front and the end can be empty, but the middle groups have at least 1 .
-                // (this has already been accounted for in floating_size)
-                for i in 1..v.len() {
-                    v[i] += 1;
-                }
-                v
-            })
-            .collect();
 
-        combos.iter()
-            .map(|combo| self.string_with_undamaged(combo))
-            .filter(|undamaged| self.matches_data(undamaged))
+        self.combinations(floating_size, group_positions, true)
+            .into_iter()
+            // .filter(|undamaged_counts| self.prefix_works(undamaged_counts))
             .count()
     }
 
-    fn string_with_undamaged(&self, undamaged_counts: &Vec<usize>) -> String {
-        let mut data = String::new();
-        for group_id in 0..self.damaged_counts.len() {
-            for _ in 0..undamaged_counts[group_id] {
-                data.push('.');
-            }
-            for _ in 0..self.damaged_counts[group_id] {
-                data.push('#');
+    fn combinations(&self, sum:usize, groups: usize, contains_final: bool) -> Vec<Vec<usize>> {
+        // base case: if you're trying to count to 0 using N numbers, all N of them are 0
+        if sum == 0 {
+            return vec![vec![0; groups]];
+        }
+        // base case: if you're trying to count to N using 1 group, it's N
+        if groups == 1 {
+            return vec![vec![sum]];
+        }
+        (0..=sum).into_iter()
+            .flat_map(|i| {
+                self.combinations(sum - i, groups - 1, false).into_iter()
+                    .map(move |mut v| {
+                        v.push(i);
+                        v
+                    })
+            })
+            .filter(|prefix| self.prefix_works(prefix, contains_final))
+            .collect()
+    }
+
+    fn prefix_works(&self, undamaged_counts: &Vec<usize>, contains_final: bool) -> bool {
+        let mut data_iter = self.data.chars();
+        for _ in 0..undamaged_counts[0] {
+            let char = data_iter.next().unwrap();
+            if char != '.' && char != '?' {
+                return false;
             }
         }
-        for _ in 0..*undamaged_counts.last().unwrap() {
-            data.push('.');
-        }
-
-        data
+        self.damaged_counts.iter().zip(undamaged_counts.iter().skip(1))
+            .enumerate()
+            .map(|(idx, (dc, udc))| {
+                // if this is not the final damaged-count, or this list does not contain
+                // the final damaged-count, it actually needs to be 1 larger
+                if !contains_final || idx < (self.damaged_counts.len() - 1) {
+                    (*dc, *udc + 1)
+                } else {
+                    (*dc, *udc)
+                }
+            })
+            .all(|(dc, udc)| {
+                for _ in 0..dc {
+                    let char = data_iter.next().unwrap();
+                    if char != '#' && char != '?' {
+                        return false;
+                    }
+                }
+                for _ in 0..udc {
+                    let char = data_iter.next().unwrap();
+                    if char != '.' && char != '?' {
+                        return false;
+                    }
+                }
+                return true;
+            })
     }
-
-    fn matches_data(&self, repaired_data: &str) -> bool {
-        self.data.chars().zip(repaired_data.chars())
-            .all(|(ca, cb)| ca == cb || ca == '?')
-    }
-
-    fn max_spaces(&self) -> usize {
-        // if ALL of the ?'s were .'s, how many .'s in a row could there be?
-        self.data
-            .replace("?", ".")
-            .replace("#", " ")
-            .split_whitespace()
-            .map(|s| s.len())
-            .max()
-            .unwrap()
-    }
-}
-
-fn combinations(sum:usize, groups: usize, max_size: usize) -> Vec<Vec<usize>> {
-    // base case: if you're trying to count to 0 using N numbers, all N of them are 0
-    if sum == 0 {
-        return vec![vec![0; groups]];
-    }
-    // base case: if you're trying to count to N using 1 group, it's N
-    if groups == 1 {
-        return vec![vec![sum]];
-    }
-    let max_iter = min(sum, max_size);
-    (0..=max_iter).into_iter()
-        .flat_map(|i| {
-            combinations(sum - i, groups - 1, max_iter).into_iter()
-                .map(move |mut v| {
-                    v.push(i);
-                    v
-                })
-        })
-        .collect()
 }
 
 fn factorial(num: usize) -> u128 {
@@ -129,18 +119,29 @@ fn main() {
 
 fn part1() {
     let possibilities: usize = read_puzzles("input", false).iter()
-        .map(|p| p.possible_combos())
+        .map(|p| {
+            let combos = p.possible_combos();
+            println!("{combos}");
+            combos
+        })
         .sum();
 
     println!("Part 1: {possibilities}");
 }
 
 fn part2() {
-    let possibilities: usize = read_puzzles("example", true).iter()
-        .map(|p| p.possible_combos())
-        .sum();
+    read_puzzles("example", true).iter()
+        .for_each(|p| {
+            println!("{} {:?}", p.data, p.damaged_counts);
+        });
+        // .map(|p| {
+        //     let combos = p.possible_combos();
+        //     println!("{combos}");
+        //     combos
+        // })
+        // .sum();
 
-    println!("Part 2: {possibilities}");
+    // println!("Part 2: {possibilities}");
 }
 
 fn read_puzzles(filename: &str, funky_mode: bool) -> Vec<Puzzle> {
