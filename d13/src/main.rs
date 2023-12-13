@@ -52,10 +52,8 @@ impl Map {
 
     fn count_diffs(a: &Vec<char>, b: &Vec<char>) -> usize {
         a.iter().zip(b.iter())
-            .map(|(a, b)| {
-                if a == b { 0 } else { 1 }
-            })
-            .sum()
+            .filter(|(a, b)| a == b)
+            .count()
     }
 
 }
