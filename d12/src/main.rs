@@ -1,8 +1,11 @@
+use std::cell::RefCell;
+use std::collections::HashSet;
 use std::fs;
+use std::time::SystemTime;
 
 struct Puzzle {
     damaged_counts: Vec<usize>,
-    data: String
+    data: String,
 }
 
 impl Puzzle {
@@ -13,7 +16,10 @@ impl Puzzle {
             .split(",")
             .map(|num| num.parse().unwrap())
             .collect();
-        Puzzle { damaged_counts: damaged_groups, data: corrupted_data }
+        Puzzle {
+            damaged_counts: damaged_groups,
+            data: corrupted_data,
+        }
     }
 
     fn from_line_but_worse(line: &str) -> Puzzle {
@@ -32,7 +38,10 @@ impl Puzzle {
         for _ in 0..5 {
             base_groups.iter().for_each(|n| damaged_groups.push(*n));
         }
-        Puzzle { damaged_counts: damaged_groups, data: corrupted_data }
+        Puzzle {
+            damaged_counts: damaged_groups,
+            data: corrupted_data,
+        }
     }
 
     fn possible_combos(&self) -> usize {
@@ -44,30 +53,38 @@ impl Puzzle {
         let floating_size = self.data.len() - broken_sum - (self.damaged_counts.len() - 1);
         let group_positions = self.damaged_counts.len() + 1;
 
-        self.combinations(floating_size, group_positions, true)
+        let empty = vec![];
+        self.combinations(floating_size, group_positions, &empty)
             .into_iter()
             // .filter(|undamaged_counts| self.prefix_works(undamaged_counts))
             .count()
     }
 
-    fn combinations(&self, sum:usize, groups: usize, contains_final: bool) -> Vec<Vec<usize>> {
+    fn combinations(&self, sum:usize, groups: usize, so_far: &Vec<usize>) -> Vec<Vec<usize>> {
         // base case: if you're trying to count to 0 using N numbers, all N of them are 0
         if sum == 0 {
-            return vec![vec![0; groups]];
+            let mut new_vec = so_far.clone();
+            for _ in 0..groups {
+                new_vec.push(0);
+            }
+            return if self.prefix_works(&new_vec, true) { vec![new_vec] } else { vec![] };
         }
         // base case: if you're trying to count to N using 1 group, it's N
         if groups == 1 {
-            return vec![vec![sum]];
+            let mut new_vec = so_far.clone();
+            new_vec.push(sum);
+            return if self.prefix_works(&new_vec, true) { vec![new_vec] } else { vec![] };
         }
         (0..=sum).into_iter()
             .flat_map(|i| {
-                self.combinations(sum - i, groups - 1, false).into_iter()
-                    .map(move |mut v| {
-                        v.push(i);
-                        v
-                    })
+                let mut new_vec = so_far.clone();
+                new_vec.push(i);
+                return if self.prefix_works(&new_vec, false) {
+                    self.combinations(sum - i, groups - 1, &new_vec).into_iter()
+                } else {
+                    vec![].into_iter()
+                }
             })
-            .filter(|prefix| self.prefix_works(prefix, contains_final))
             .collect()
     }
 
@@ -130,18 +147,18 @@ fn part1() {
 }
 
 fn part2() {
-    read_puzzles("example", true).iter()
-        .for_each(|p| {
-            println!("{} {:?}", p.data, p.damaged_counts);
-        });
-        // .map(|p| {
-        //     let combos = p.possible_combos();
-        //     println!("{combos}");
-        //     combos
-        // })
-        // .sum();
+    let begin = SystemTime::now();
+    let possibilities: usize = read_puzzles("input", true).iter()
+        .map(|p| {
+            let combos = p.possible_combos();
+            println!("{combos}");
+            combos
+        })
+        .sum();
+    let end = SystemTime::now();
 
-    // println!("Part 2: {possibilities}");
+    println!("Part 2: {possibilities} in {:.3} seconds",
+             end.duration_since(begin).unwrap().as_secs_f32());
 }
 
 fn read_puzzles(filename: &str, funky_mode: bool) -> Vec<Puzzle> {
