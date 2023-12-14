@@ -1,7 +1,6 @@
-use std::cell::RefCell;
-use std::collections::HashSet;
 use std::fs;
 use std::time::SystemTime;
+use rayon::prelude::*;
 
 struct Puzzle {
     damaged_counts: Vec<usize>,
@@ -55,78 +54,87 @@ impl Puzzle {
 
         let empty = vec![];
         self.combinations(floating_size, group_positions, &empty)
-            .into_iter()
-            // .filter(|undamaged_counts| self.prefix_works(undamaged_counts))
-            .count()
     }
 
-    fn combinations(&self, sum:usize, groups: usize, so_far: &Vec<usize>) -> Vec<Vec<usize>> {
+    fn combinations(&self, sum:usize, groups: usize, so_far: &Vec<usize>) -> usize {
+        // in either base-case, the last item in the vec is the "final" item in the vec;
+        // otherwise, more items will be added to the end of the vec
+
         // base case: if you're trying to count to 0 using N numbers, all N of them are 0
         if sum == 0 {
             let mut new_vec = so_far.clone();
             for _ in 0..groups {
                 new_vec.push(0);
+                if !self.prefix_works(&new_vec) {
+                    return 0
+                }
             }
-            return if self.prefix_works(&new_vec, true) { vec![new_vec] } else { vec![] };
+            return 1
         }
         // base case: if you're trying to count to N using 1 group, it's N
         if groups == 1 {
             let mut new_vec = so_far.clone();
             new_vec.push(sum);
-            return if self.prefix_works(&new_vec, true) { vec![new_vec] } else { vec![] };
+            return if self.prefix_works(&new_vec) { 1 } else { 0 };
         }
+
         (0..=sum).into_iter()
-            .flat_map(|i| {
+            .map(|i| {
+                // see if it works to add 'i' to the end of our list...
                 let mut new_vec = so_far.clone();
                 new_vec.push(i);
-                return if self.prefix_works(&new_vec, false) {
-                    self.combinations(sum - i, groups - 1, &new_vec).into_iter()
+                return if self.prefix_works(&new_vec) {
+                    // if so, collect it's working children
+                    self.combinations(sum - i, groups - 1, &new_vec)
                 } else {
-                    vec![].into_iter()
+                    // otherwise, this is a dead branch
+                    0
                 }
             })
-            .collect()
+            .sum()
     }
 
-    fn prefix_works(&self, undamaged_counts: &Vec<usize>, contains_final: bool) -> bool {
-        let mut data_iter = self.data.chars();
-        for _ in 0..undamaged_counts[0] {
+    fn prefix_works(&self, undamaged_counts: &Vec<usize>) -> bool {
+        let contains_final = undamaged_counts.len() > self.damaged_counts.len();
+
+        // we already know the first (n-1) groups are fine, because we've prefix-tested them
+        let groups_to_skip = undamaged_counts.len() - 1;
+        // skip the characters in the first n-1 undamaged groups,
+        // the first n-1 damaged groups
+        // and the extra required undamaged character after each damaged group
+        let skip_ahead = undamaged_counts.iter().take(groups_to_skip).sum::<usize>() +
+            self.damaged_counts.iter().take(groups_to_skip).sum::<usize>()
+            + groups_to_skip
+            // if this is the final undamaged count, we didn't require the prior separator
+            - if contains_final { 1 } else { 0 };
+        let mut data_iter = self.data.chars().skip(skip_ahead);
+
+        for _ in 0..*(undamaged_counts.last().unwrap()) {
             let char = data_iter.next().unwrap();
             if char != '.' && char != '?' {
                 return false;
             }
         }
-        self.damaged_counts.iter().zip(undamaged_counts.iter().skip(1))
-            .enumerate()
-            .map(|(idx, (dc, udc))| {
-                // if this is not the final damaged-count, or this list does not contain
-                // the final damaged-count, it actually needs to be 1 larger
-                if !contains_final || idx < (self.damaged_counts.len() - 1) {
-                    (*dc, *udc + 1)
-                } else {
-                    (*dc, *udc)
+        // if we're not running the final undamaged group, make sure that the damaged group
+        // after this damaged group is kosher, including its separator
+        if !contains_final {
+            for _ in 0..self.damaged_counts[undamaged_counts.len() - 1] {
+                let char = data_iter.next().unwrap();
+                if char != '#' && char != '?' {
+                    return false;
                 }
-            })
-            .all(|(dc, udc)| {
-                for _ in 0..dc {
-                    let char = data_iter.next().unwrap();
-                    if char != '#' && char != '?' {
-                        return false;
-                    }
+            }
+            // if this is not the last damaged group, it must have an extra
+            // undamaged separator between it and the next damaged group
+            if self.damaged_counts.len() > undamaged_counts.len() {
+                let last_char = data_iter.next().unwrap();
+                if last_char != '.' && last_char != '?' {
+                    return false;
                 }
-                for _ in 0..udc {
-                    let char = data_iter.next().unwrap();
-                    if char != '.' && char != '?' {
-                        return false;
-                    }
-                }
-                return true;
-            })
+            }
+        }
+        return true;
     }
-}
-
-fn factorial(num: usize) -> u128 {
-    (1..=(num as u128)).product()
 }
 
 fn main() {
@@ -148,10 +156,13 @@ fn part1() {
 
 fn part2() {
     let begin = SystemTime::now();
-    let possibilities: usize = read_puzzles("input", true).iter()
-        .map(|p| {
+    let possibilities: usize = read_puzzles("input", true)
+        .iter()
+        .enumerate()
+        .par_bridge()
+        .map(|(id, p)| {
             let combos = p.possible_combos();
-            println!("{combos}");
+            println!("{id}: {combos}");
             combos
         })
         .sum();
