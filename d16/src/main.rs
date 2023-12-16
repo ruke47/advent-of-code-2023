@@ -148,8 +148,8 @@ fn part2() {
         .max()
         .unwrap();
     let mut entries: Vec<(Point, Direction)> = vec![];
-    for &edge in game.board.keys() {
-        let (x, y) = edge;
+    for &point in game.board.keys() {
+        let (x, y) = point;
         if x == 0 {
             entries.push(((x - 1, y), Right));
         }
