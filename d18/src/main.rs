@@ -47,14 +47,25 @@ fn part2() {
         })
         .sum::<i64>() / 2;
 
-    // I just kinda of guessed at adding the outline, tbh.
-    // I knew that my numbers were of because the line lengths are "new distance added",
-    // not length of a face.
-    // Adding the outline didn't give me the right area, but adding HALF of the outline gave me
-    // 1 off from the right number. So I fudged it. I'm SORRY.
     let outline: i64 = instructions.iter()
         .map(|i| i.hex_length)
         .sum();
+
+    /*
+    If you get the directions: `R2, D2, L2, U2`, it causes you to trace this shape:
+        ###
+        #.#
+        ###
+    If you take the upper-left corner of the `#` to be the origin, it's traced out a 2x2 box.
+
+    However, the "fatness" of your tool has dredged out an extra 1 square to the right of
+    every rightmost square, and an extra 1 square beneath every bottommost square,
+    and then exactly 1 extra corner square:
+        ┌┐R
+        └┘R
+        DDC
+    */
+
     let total_area = area + outline / 2 + 1;
     println!("Part 2: {total_area}");
     // Should: 952408144115
