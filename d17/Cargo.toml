@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 lib2d = { path = "../lib2d" }
+itertools = "0.12.0"

@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fs;
 use std::hash::{Hash};
 use lib2d::{corners, Point2d};
@@ -13,7 +14,7 @@ struct Game {
     max_streak: i32,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
 struct Tile {
     point: Point2d<i32>,
     direction: Direction,
@@ -32,6 +33,7 @@ impl Tile {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 struct CostedTile {
     tile: Tile,
     cost: i32
@@ -72,31 +74,45 @@ impl CostedTile {
     }
 }
 
+impl Ord for CostedTile {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost)
+            .then_with(|| self.tile.cmp(&other.tile))
+    }
+}
+
+impl PartialOrd for CostedTile {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl Game {
     fn find_path(&self) -> i32 {
         let (_, target_point) = corners(self.map.keys()).unwrap();
         let mut explored: HashSet<Tile> = HashSet::new();
         let starting_tile = CostedTile::new(Point2d::new(0, 0), Right, 0, 0);
-        let mut to_explore: Vec<CostedTile> = vec![starting_tile];
+        let mut to_explore: BinaryHeap<CostedTile> = BinaryHeap::from([starting_tile]);
         while let Some(cur_pos) = to_explore.pop() {
+            if explored.contains(&cur_pos.tile) {
+                continue
+            }
             if cur_pos.tile.point == target_point {
                 return cur_pos.cost
             }
             for tile in cur_pos.tile.self_and_worse(self) {
                 explored.insert(tile);
             }
-            explored.insert(cur_pos.tile.clone());
             [Up, Down, Left, Right].into_iter()
                 .flat_map(|dir| cur_pos.try_travel(dir, self).into_iter())
                 .filter(|ct| !explored.contains(&ct.tile))
                 .for_each(|ct| to_explore.push(ct));
-            to_explore.sort_by(|a, b| a.cost.cmp(&b.cost).reverse())
         }
         panic!("Never found my way to El Dorado");
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 enum Direction {
     Up, Down, Left, Right
 }

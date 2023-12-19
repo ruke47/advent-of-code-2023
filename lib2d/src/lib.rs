@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct Point2d<T>
 {
     pub x: T,
