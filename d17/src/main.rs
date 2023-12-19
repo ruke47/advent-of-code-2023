@@ -2,8 +2,8 @@ use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fs;
 use std::hash::{Hash};
-use lib2d::{corners, Point2d};
-use crate::Direction::{*};
+use lib2d::{corners, dir_delta, dir_opposite, Direction, Point2d};
+use lib2d::Direction::{*};
 
 // TODO: Djikstra's, but for each node, keep track of lowest score for
 //       each of 0, 1, 2, 3 straight moves to get there?
@@ -56,7 +56,7 @@ impl CostedTile {
     }
     fn try_travel(&self, direction: Direction, game: &Game) -> Option<CostedTile> {
         // You may not turn around
-        if direction == opposite(self.tile.direction) {
+        if direction == dir_opposite(self.tile.direction) {
             return None
         }
         // if we've already traveled our max_streak to get here, we can't keep going
@@ -71,7 +71,7 @@ impl CostedTile {
         let mut end_point = self.tile.point;
         let mut move_cost = 0;
         for _ in 0..move_distance {
-            end_point = end_point + delta(direction);
+            end_point = end_point + dir_delta(direction);
             // Note: ? here forces entire function to return None if the point is not in map
             move_cost += game.map.get(&end_point)?;
         }
@@ -133,29 +133,6 @@ impl Game {
                 .for_each(|ct| to_explore.push(ct));
         }
         panic!("Never found my way to El Dorado");
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
-enum Direction {
-    Up, Down, Left, Right
-}
-
-fn delta(direction: Direction) -> Point2d<i32> {
-    match direction {
-        Up => Point2d::new(0, -1),
-        Down => Point2d::new(0, 1),
-        Left => Point2d::new(-1, 0),
-        Right => Point2d::new(1, 0),
-    }
-}
-
-fn opposite(direction: Direction) -> Direction {
-    match direction {
-        Up => Down,
-        Down => Up,
-        Left => Right,
-        Right => Left,
     }
 }
 

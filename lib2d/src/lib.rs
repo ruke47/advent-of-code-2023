@@ -1,5 +1,6 @@
 use std::cmp::{max, min};
 use std::ops::{Add, Div, Mul, Sub};
+use crate::Direction::{*};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct Point2d<T>
@@ -69,6 +70,29 @@ where
     }
 
     Some((Point2d::new(min_x, min_y), Point2d::new(max_x, max_y)))
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
+pub enum Direction {
+    Up, Down, Left, Right
+}
+
+pub fn dir_delta(direction: Direction) -> Point2d<i32> {
+    match direction {
+        Up => Point2d::new(0, -1),
+        Down => Point2d::new(0, 1),
+        Left => Point2d::new(-1, 0),
+        Right => Point2d::new(1, 0),
+    }
+}
+
+pub fn dir_opposite(direction: Direction) -> Direction {
+    match direction {
+        Up => Down,
+        Down => Up,
+        Left => Right,
+        Right => Left,
+    }
 }
 
 
